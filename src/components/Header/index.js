@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
+import useGeolocation from 'react-hook-geolocation'
 import styled from 'styled-components';
 import { isMobile } from 'react-device-detect';
 import { IconContext } from 'react-icons';
@@ -31,10 +32,9 @@ const verifyLocation = (loc) => {
 
 const Header = () => {
     const [viewLocation, setViewLocation] = useState(false);
-
+    const geolocation = useGeolocation();
     const [viewCitiesList, setViewCitiesList] = useState(false);
     const [viewModal, setViewModal] = useState(false);
-    const [mobileCurrentLocation, setMobileCurrentLocation] = useState(null);
 
     const [location, setLocation] = useState('Not chosen');
 
@@ -56,20 +56,20 @@ const Header = () => {
         setViewLocation(false)
     }
     async function success(pos) {
-        let crd = pos.coords;
-        setMobileCurrentLocation(pos.coords)
-        if(pos.coords.latitude !== undefined && pos.coords.longitude !== undefined){
+        if(pos.latitude !== undefined && pos.longitude !== undefined){
             try {
-                let response = await getLocationLatLon(pos.coords.latitude, pos.coords.longitude)
-                dispatch(setCurrentLocation(response.data.name, response.data.sys.country, pos.coords.latitude, pos.coords.longitude))
-                dispatch(getCurrentData(pos.coords.latitude, pos.coords.longitude))
+                let response = await getLocationLatLon(pos.latitude, pos.longitude)
+                dispatch(setCurrentLocation(response.data.name, response.data.sys.country, pos.latitude, pos.longitude))
+                dispatch(getCurrentData(pos.latitude, pos.longitude))
             } catch (error) {
                 console.log(error)
             }
         }
     }
     const getCurrentInfoLocationMobile = () => {
-        navigator.geolocation.getCurrentPosition(success)
+        !geolocation.error ? 
+        success(geolocation) :
+        alert("No geolocation, sorry.")
     }
     const deleteCity = (lat,lon, index) => {
         if(citiesFolder.length > 1){
@@ -186,7 +186,7 @@ const Header = () => {
                     <CitiesList>
                         {citiesFolder.map((el, index) => (
                             <div key={index} id={index}>
-                                <p onClick={() => setCurrentCity(el)}>{el.city}, {el.country}</p>
+                                <p onClick={() => setCurrentCity(el)}>{verifyLocation(`${el.city}, ${el.country}`)}</p>
                                 {citiesFolder.length > 1 ? <button onClick={() => deleteCity(el.lat, el.lon, index)}>Delete</button> : <></>}
                             </div>
                         ))}

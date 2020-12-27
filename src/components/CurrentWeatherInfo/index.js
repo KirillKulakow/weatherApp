@@ -31,7 +31,7 @@ const monthArray = [
     'Dec',
 ];
 const getCurrentIcon = (type) => {
-    return `http://openweathermap.org/img/wn/${type}@2x.png`
+    return `https://openweathermap.org/img/wn/${type}@2x.png`
 };
 const getCurrentDate = (dateUTC) => {
     return new Date(+`${dateUTC}000`)
