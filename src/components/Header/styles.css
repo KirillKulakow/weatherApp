@@ -1,0 +1,17 @@
+.header_animation-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+.header_animation-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 500ms, transform 500ms;
+}
+.header_animation-exit {
+  opacity: 1;
+}
+.header_animation-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 500ms, transform 500ms;
+}
