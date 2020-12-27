@@ -8,8 +8,11 @@ import { FaCity } from 'react-icons/fa'
 import { CSSTransition } from 'react-transition-group';
 import './styles.css'
 
-import { getCurrentData } from '../../redux/modules/CurrentData'
+import { getCurrentData } from '../../redux/modules/CurrentData';
+import { setCurrentLocation } from '../../redux/modules/CurrentLocation'
+import { addNewCity } from '../../redux/modules/CitiesFolder';
 import { getStorage, setStorage } from '../../utils/localStorage';
+import { getLocationLatLon } from '../../utils/api';
 import { removeCity } from '../../redux/modules/CitiesFolder'
 import ModalInput from '../Modal'
 
@@ -18,6 +21,7 @@ const Header = () => {
 
     const [viewCitiesList, setViewCitiesList] = useState(false);
     const [viewModal, setViewModal] = useState(false);
+    const [mobileCurrentLocation, setMobileCurrentLocation] = useState(null);
 
     const [location, setLocation] = useState('Not chosen');
 
@@ -28,9 +32,11 @@ const Header = () => {
 
     const showHideSetLocation = () => {
         setViewLocation((prev) => !prev)
+        setViewCitiesList(false)
     };
     const showHideCitiesList = () => {
         setViewCitiesList((prev) => !prev)
+        setViewLocation(false)
     };
     const showHideModal = () => {
         setViewModal(true)
@@ -38,31 +44,39 @@ const Header = () => {
     }
     async function success(pos) {
         let crd = pos.coords;
-        dispatch(getCurrentData(crd.latitude, crd.longitude))
+        setMobileCurrentLocation(pos.coords)
+        if(pos.coords.latitude !== undefined && pos.coords.longitude !== undefined){
+            try {
+                let response = await getLocationLatLon(pos.coords.latitude, pos.coords.longitude)
+                dispatch(setCurrentLocation(response.data.name, response.data.sys.country, pos.coords.latitude, pos.coords.longitude))
+                dispatch(getCurrentData(pos.coords.latitude, pos.coords.longitude))
+            } catch (error) {
+                console.log(error)
+            }
+        }
     }
     const getCurrentInfoLocationMobile = () => {
         navigator.geolocation.getCurrentPosition(success)
     }
-    const deleteCity = (lat,lon) => {
+    const deleteCity = (lat,lon, index) => {
         if(citiesFolder.length > 1){
-            removeCity(lat, lon)
             const history = getStorage('CitiesDataWeatherApp');
             let citiesArray = [];
             if(history.includes(' / ')){
-              let arr = history.split(' / ');
-              let array = arr.map( el => {
-                let elementArray = el.split(', ');
-                return {
-                  latitude: elementArray[0],
-                  longitude: elementArray[1],
-                  city: elementArray[2],
-                  country: elementArray[3]
-                }
-              })
-              citiesArray.push(array)
+                let arr = history.split(' / ');
+                let array = arr.map( el => {
+                    let elementArray = el.split(', ');
+                    return {
+                        latitude: elementArray[0],
+                        longitude: elementArray[1],
+                        city: elementArray[2],
+                        country: elementArray[3]
+                    }
+                })
+                citiesArray.push(...array)
             } else {
-              let arr = history.split(', ');
-              citiesArray.push({latitude: arr[0], longitude: arr[1], city: arr[2], country: arr[3]})
+                let arr = history.split(', ');
+                citiesArray.push({latitude: arr[0], longitude: arr[1], city: arr[2], country: arr[3]})
             }
             const filteredArr = citiesArray.filter(el => (
                 el.latitude+'' !== lat+'' && el.longitude+'' !== lon+''
@@ -70,8 +84,40 @@ const Header = () => {
             const string = filteredArr.map(el => (
                 `${el.latitude}, ${el.longitude}, ${el.city}, ${el.country}`
             ))
-            setStorage('CitiesDataWeatherApp', string.join(', '))
+            setStorage('CitiesDataWeatherApp', string.join(' / '))
+            dispatch(removeCity(index))
         }
+    }
+    const isUniqueCityOfFolder = () => {
+        let unique = true;
+        if(citiesFolder.length > 1) {
+            citiesFolder.map(el => {
+                if(el.lat+'' === locationRedux.lat+'' && el.lon+'' === locationRedux.lon+''){
+                    unique = false
+                    return el
+                }
+                return el
+            })
+        } else {
+            if(citiesFolder[0].lat+'' === locationRedux.lat+'' && citiesFolder[0].lon+'' === locationRedux.lon+''){
+                unique = false
+            }
+        }
+        
+        return unique
+    }
+    const savePosition = () => {
+        let unique = isUniqueCityOfFolder()
+        if(unique){
+            dispatch(addNewCity(locationRedux))
+            const history = getStorage('CitiesDataWeatherApp');
+            setStorage('CitiesDataWeatherApp', `${locationRedux.lat}, ${locationRedux.lon}, ${locationRedux.city}, ${locationRedux.country} / ${history}`)
+            setViewLocation(false);
+            setViewCitiesList(true);
+        }
+    }
+    const setCurrentCity = (obj) => {
+        dispatch(setCurrentLocation(obj.city, obj.country, obj.lat, obj.lon))
     }
     useEffect(() => {
         if(locationRedux.city !== null && locationRedux.country !== null){
@@ -104,7 +150,7 @@ const Header = () => {
                 {viewLocation ? <MenuLocation>
                     {isMobile ? <div onClick={getCurrentInfoLocationMobile}><p>Use current location</p></div> : <></>}
                     <div onClick={showHideModal}><p>Use location from input</p></div>
-                    <div><p>Save this location</p></div>
+                    <div onClick={savePosition}><p>Save this location</p></div>
                 </MenuLocation> : <></>}
             </CSSTransition>
             <CSSTransition
@@ -115,8 +161,8 @@ const Header = () => {
                 {viewCitiesList && citiesFolder.length >= 1 ? <CitiesList>
                     {citiesFolder.map((el, index) => (
                         <div key={index}>
-                            <p>{el.city}, {el.country}</p>
-                            <button onClick={deleteCity}>Delete</button>
+                            <p onClick={() => setCurrentCity(el)}>{el.city}, {el.country}</p>
+                            <button onClick={() => deleteCity(el.lat, el.lon, index)}>Delete</button>
                         </div>
                     ))}
                 </CitiesList> : <></>}
@@ -153,6 +199,9 @@ const CurrentLocation = styled.div`
     &:hover {
         text-decoration: underline;
     }
+    @media (max-width: 768px) {
+        font-size: 12px;
+    }
 `
 const CitiesClick = styled.div`
     position: absolute;
@@ -162,6 +211,9 @@ const CitiesClick = styled.div`
     cursor: pointer;
     &:hover {
         text-decoration: underline;
+    }
+    @media (max-width: 768px) {
+        font-size: 12px;
     }
 `
 const MenuLocation = styled.div`
@@ -225,6 +277,10 @@ const CitiesList = styled.div`
         }
         p {
             margin: 0;
+            cursor: pointer;
+            &:hover{
+                text-decoration: underline;
+            }
         }
         button {
             background-color: white;
@@ -236,4 +292,4 @@ const CitiesList = styled.div`
             }
         }
     }
-`
+` 

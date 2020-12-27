@@ -3,15 +3,26 @@ import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
 
 import { getLocationName } from '../../utils/api'
-import { addNewCity } from '../../redux/modules/CitiesFolder';
 import { setCurrentLocation } from '../../redux/modules/CurrentLocation';
-import { getStorage, setStorage } from '../../utils/localStorage';
+import useDebounce from '../../utils/debounceHook';
+
+const debounce = (f, ms) => {
+    let isCooldown = false;
+  
+    return function() {
+      if (isCooldown) return;
+      f();
+      isCooldown = true;
+      setTimeout(() => isCooldown = false, ms);
+    };
+  
+}
 
 const ModalInput = ({isModal, setIsModal}) => {
-    const [cities, setCities] = useState([])
-    const [inputCity, setInputCity] = useState('')
-    const [currentCityToAdd, setCurrentCityToAdd] = useState({})
-    const [loading, setLoading] = useState(false)
+    const [cities, setCities] = useState([]);
+    const [inputCity, setInputCity] = useState('');
+    const [currentCityToAdd, setCurrentCityToAdd] = useState({});
+    const [loading, setLoading] = useState(false);
     const dispatch = useDispatch();
 
     const closeTab = () => {
@@ -28,45 +39,50 @@ const ModalInput = ({isModal, setIsModal}) => {
                 return {
                     name: el.name,
                     lat: el.lat,
-                    lon: el.lat,
+                    lon: el.lon,
                     country: el.country
                 }
             })
-            setCities(array)
-            setLoading(false)
+            return array
         } catch (e) {
             console.log(e)
+            return e
         }
     }
-    const clickToAdd = (obj) => {
+    const clickToAdd = (obj, index) => {
         setCurrentCityToAdd({
             city: obj.name,
             country: obj.country,
             latitude: obj.lat,
             longtitude: obj.lon,
         });
-        setCities([]);
+        setInputCity('');
+        setCities([cities[index]]);
     }
     const getAutocomplete = () => (
         cities.map((el, index) => (
-            <Autocomplete key={index} onClick={() => clickToAdd(el)}>
+            <Autocomplete key={index} onClick={() => clickToAdd(el, index)}>
                 <p>{el.name}, {el.country}</p>
             </Autocomplete>
         ))
     )
+    const debouncedSearchTerm = useDebounce(inputCity, 500);
+
     useEffect(() => {
-        if(inputCity.length > 2){
-            fetchData(inputCity)
+        if (debouncedSearchTerm) {
+            setLoading(true);
+            fetchData(debouncedSearchTerm)
+            .then(res => {
+                setCities(res)
+                setLoading(false)
+            })
         }
-    }, [inputCity, fetchData])
+    }, [debouncedSearchTerm])
     const verifyCity = () => {
         return Object.keys(currentCityToAdd).length < 1
     }
     const addNewCityModal = () => {
-        dispatch(addNewCity(currentCityToAdd))
-        dispatch(setCurrentLocation(currentCityToAdd.city, currentCityToAdd.country))
-        const history = getStorage('CitiesDataWeatherApp');
-        setStorage('CitiesDataWeatherApp', `${history} / ${currentCityToAdd.latitude}, ${currentCityToAdd.longtitude}, ${currentCityToAdd.city}, ${currentCityToAdd.country}`)
+        dispatch(setCurrentLocation(currentCityToAdd.city, currentCityToAdd.country, currentCityToAdd.latitude, currentCityToAdd.longtitude))
         closeTab()
     }
     return (

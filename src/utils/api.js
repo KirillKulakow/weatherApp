@@ -10,7 +10,14 @@ export const getResponse = (url) => {
 export const getLocationName = (name) => {
     return axios({
         method: 'get',
-        url: `http://api.openweathermap.org/geo/1.0/direct?q=${name}&limit=5&appid=768c7ba43e6f34a1c5191eaf0f5fcd45`
+        url: `http://api.openweathermap.org/geo/1.0/direct?q=${name}&limit=5&appid=da84c3e9bf9be159cb8a175d21f9898a`
+    })
+}
+
+export const getLocationLatLon = (lat, lon) => {
+    return axios({
+        method: 'get',
+        url: `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=da84c3e9bf9be159cb8a175d21f9898a`
     })
 }
 

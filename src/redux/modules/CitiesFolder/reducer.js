@@ -8,15 +8,13 @@ const reducer = (state = [], action) => {
     switch (action.type) {
       case ADD_NEW_CITY:
         if(state.length < 1){
-          return [action.payload]
+          return action.payload
         } else {
-          return [...state, action.payload];
+          return [action.payload, ...state];
         }
       case REMOVE_CITY:
-        let newState = state.filter(el => 
-          el.latitude === action.payload.lat &&
-          el.longitude === action.payload.lon
-        );
+        let newState = state.slice(0)
+        newState.splice(action.payload, 1)
         return [...newState];
       default:
         return state;

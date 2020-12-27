@@ -15,7 +15,7 @@ export const getCurrentData = (lat, lon) => async (
   });
 
   try {
-    let url = `/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=minutely&units=metric&appid=${'768c7ba43e6f34a1c5191eaf0f5fcd45'}`;
+    let url = `/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=minutely&units=metric&appid=${'da84c3e9bf9be159cb8a175d21f9898a'}`;
     const response = await getResponse(url);
     console.log(response)
      return dispatch({
