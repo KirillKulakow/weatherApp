@@ -16,6 +16,19 @@ import { getLocationLatLon } from '../../utils/api';
 import { removeCity } from '../../redux/modules/CitiesFolder'
 import ModalInput from '../Modal'
 
+const verifyLocation = (loc) => {
+    if(loc.length > 10){
+        let newStr = loc.split(', ');
+        if(newStr[0].length > 10) {
+            return newStr[0].slice(0, 8) + "..."
+        } else{
+            return newStr[0]
+        }
+    } else {
+        return loc
+    }
+}
+
 const Header = () => {
     const [viewLocation, setViewLocation] = useState(false);
 
@@ -114,6 +127,8 @@ const Header = () => {
             setStorage('CitiesDataWeatherApp', `${locationRedux.lat}, ${locationRedux.lon}, ${locationRedux.city}, ${locationRedux.country} / ${history}`)
             setViewLocation(false);
             setViewCitiesList(true);
+        } else {
+            alert("This location is already saved")
         }
     }
     const setCurrentCity = (obj) => {
@@ -126,6 +141,13 @@ const Header = () => {
 
     }, [locationRedux, citiesFolder])
 
+    const getPositionBG = (e) => {
+        if(e.target.id === 'back'){
+            setViewCitiesList(false)
+            setViewLocation(false)
+        }
+    }
+
     return (
         <>
         <Nav>
@@ -134,7 +156,7 @@ const Header = () => {
                 <IconContext.Provider value={{size: '13px', style: {marginRight: '5px'}}}>
                     <ImLocation2/>
                 </IconContext.Provider>
-                <span>{location}</span>
+                <span>{verifyLocation(location)}</span>
             </CurrentLocation>
             <CitiesClick onClick={showHideCitiesList}>
                 <IconContext.Provider value={{size: '13px', style: {marginRight: '5px'}}}>
@@ -147,25 +169,29 @@ const Header = () => {
                 timeout={1000}
                 classNames="header_animation"
             >
-                {viewLocation ? <MenuLocation>
-                    {isMobile ? <div onClick={getCurrentInfoLocationMobile}><p>Use current location</p></div> : <></>}
-                    <div onClick={showHideModal}><p>Use location from input</p></div>
-                    <div onClick={savePosition}><p>Save this location</p></div>
-                </MenuLocation> : <></>}
+                {viewLocation ? <BGCitiesList onClick={getPositionBG} id='back'>
+                    <MenuLocation>
+                        {isMobile ? <div onClick={getCurrentInfoLocationMobile}><p>Use current location</p></div> : <></>}
+                        <div onClick={showHideModal}><p>Use location from input</p></div>
+                        <div onClick={savePosition}><p>Save this location</p></div>
+                    </MenuLocation>
+                </BGCitiesList> : <></>}
             </CSSTransition>
             <CSSTransition
                 in={viewCitiesList}
                 timeout={1000}
                 classNames="header_animation"
             >
-                {viewCitiesList && citiesFolder.length >= 1 ? <CitiesList>
-                    {citiesFolder.map((el, index) => (
-                        <div key={index}>
-                            <p onClick={() => setCurrentCity(el)}>{el.city}, {el.country}</p>
-                            <button onClick={() => deleteCity(el.lat, el.lon, index)}>Delete</button>
-                        </div>
-                    ))}
-                </CitiesList> : <></>}
+                {viewCitiesList && citiesFolder.length >= 1 ? <BGCitiesList onClick={getPositionBG} id='back'>
+                    <CitiesList>
+                        {citiesFolder.map((el, index) => (
+                            <div key={index} id={index}>
+                                <p onClick={() => setCurrentCity(el)}>{el.city}, {el.country}</p>
+                                {citiesFolder.length > 1 ? <button onClick={() => deleteCity(el.lat, el.lon, index)}>Delete</button> : <></>}
+                            </div>
+                        ))}
+                    </CitiesList>
+                </BGCitiesList>  : <></>}
             </CSSTransition>
         </Nav>
         {viewModal ? <ModalInput isModal={viewModal} setIsModal={setViewModal}/> : <></>}
@@ -217,7 +243,7 @@ const CitiesClick = styled.div`
     }
 `
 const MenuLocation = styled.div`
-    background: linear-gradient(0deg, rgba(34,193,195,0.5) 0%, rgba(253,187,45,0.5) 100%);
+    background: linear-gradient(0deg, rgba(34,193,195,0.8) 0%, rgba(253,187,45,0.8) 100%);
     border: 1px black solid;
     z-index: 5;
     border-radius: 10px;
@@ -250,7 +276,7 @@ const MenuLocation = styled.div`
     }
 `
 const CitiesList = styled.div`
-    background: linear-gradient(0deg, rgba(34,193,195,0.5) 0%, rgba(253,187,45,0.5) 100%);
+    background: linear-gradient(0deg, rgba(34,193,195,0.8) 0%, rgba(253,187,45,0.8) 100%);
     border: 1px black solid;
     z-index: 5;
     border-radius: 10px;
@@ -293,3 +319,14 @@ const CitiesList = styled.div`
         }
     }
 ` 
+const BGCitiesList = styled.div`
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0,0,0,0.4);
+    z-index: 15
+`

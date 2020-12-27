@@ -20,7 +20,7 @@ function App() {
         setStorage('CitiesDataWeatherApp', `${res.data.latitude}, ${res.data.longitude}, ${res.data.city}, ${res.data.country_name}`)
         citiesArray.push({lat: res.data.latitude, lon: res.data.longitude, city: res.data.city, country: res.data.country_name})
         console.log('cities at App', citiesArray)
-        dispatch(addNewCity(...citiesArray));
+        dispatch(addNewCity(citiesArray));
         dispatch(setCurrentLocation(res.data.city, res.data.country_name, res.data.latitude, res.data.longitude))
         dispatch(getCurrentData(res.data.latitude, res.data.longitude))
       }
